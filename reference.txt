@@ -1,0 +1,26 @@
+
+ 메일 STTP 서버 활용
+ https://velog.io/@myway00/Python-%EB%B3%B5%EC%8A%B5-004-%ED%8C%8C%EC%9D%B4%EC%8D%AC%EC%9C%BC%EB%A1%9C-%EC%9D%B4%EB%A9%94%EC%9D%BC-%EB%B0%9C%EC%86%A1
+
+ 이벤트크롤러
+ https://github.com/doorBW/event_crawl/blob/master/event_crawler.py
+
+ 뉴스레터 프로그램
+ https://wooiljeong.github.io/python/newsletter/
+
+ 아카라이브 알리미
+ https://github.com/aldlfkahs/DCinsideAlarm/tree/arcalive
+
+ 디시알리미
+ https://github.com/aldlfkahs/DCinsideAlarm
+
+ 뉴스레터 알리미
+ https://wooiljeong.github.io/python/newsletter/
+
+ html.parser 구문 분석기
+ https://docs.python.org/ko/3/library/html.parser.html
+
+ 파싱 예제
+ https://library.gabia.com/contents/9239/
+
+
