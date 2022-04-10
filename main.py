@@ -27,30 +27,47 @@ import time
 from datetime import datetime, timedelta
 import os
 from openpyxl import Workbook
+import smtplib
+from email.mime.text import MIMEText
 
 
 class KgallAlimi() :
 
     # 생성자
-    def __init__(self, code, list_keywords, path="", maxpost=100, filename="냠냠") :
-        self.code = code                        # 갤러리 코드
-        self.list_keywords = list_keywords      # 수집할 키워드
-        self.path = path                        # 내보낼 경로
-        # self.days = days                        # 며칠 전까지 수집할 것인가 (현재는 사용하지 않음)
+    def __init__(self, gcode, list_keywords, maxpost=100, export_type ="" , path="", filename="rec_", mail_addr="") :
+        
+        # parameters ======================================================================================
+        self.gcode = gcode                      # 갤러리 코드
+        self.list_keywords = list_keywords      # 검색할 키워드
         self.maxpost = maxpost                  # 최대 수집할 글의 개수
-        self.filename = filename
+        self.export_type = export_type          # 내보낼 파일 타입 (txt, print, xlsx, email)
+        self.path = path                        # 내보낼 경로 (default : desktop)
+        # 내보낼 이름 (default : rec_날짜_시간)
+        self.filename = filename + str(datetime.today().strftime('%m_%d_%H_%M'))
+        self.mail_info = {'sender' : mail_addr,
+                          'password' : "",
+                          'rcver' : mail_addr,
+                          'subject' : self.filename,
+                          'text' : "",
+                        }
 
-        self.pagenum = 0
+        # self.days = days                        # 며칠 전까지 수집할 것인가 (현재는 사용하지 않음)
+
+        # parameters ======================================================================================
+        self.pagenum = 0                                                        # 개념글 페이지 iteration
         self.today = datetime.today()                                           # 오늘 날짜
         self.user_agent = {'User-agent': 'Mozilla/5.0'}                         # 접속설정
         self.urlbase = "https://gall.dcinside.com/mgallery/board/lists/?id="    # 접속할 개념글 주소 베이스
         self.urlbase_view = "https://gall.dcinside.com/m/"                      # 내보낼 개념글 주소 베이스
 
+        # performance test =================================================================================
+        self.time_start = None
+
     ### 다음 개념글 페이지의 주소를 리턴한다.
     def get_next_page(self) :
         # 조합 방식 : https://gall.dcinside.com/mgallery/board/lists/?id= + kizunaai + &page= + 1 + &exception_mode=recommend
         self.pagenum += 1
-        next_page_url = self.urlbase + self.code + "&page=" + str(self.pagenum) + "&exception_mode=recommend"
+        next_page_url = self.urlbase + self.gcode + "&page=" + str(self.pagenum) + "&exception_mode=recommend"
         return next_page_url
 
     ### URL에서 html을 받아온다.
@@ -96,29 +113,43 @@ class KgallAlimi() :
         rawposts = soup.find("tbody").find_all("tr", class_="ub-content us-post")
 
         # 모든 글들의 리스트에서 필요한 정보만 추출.
-        for i in rawposts :
+        for rawpost in rawposts :
 
             # 만일 공지나 이벤트인 경우는 넘김.
-            if (i.find("td", class_="gall_subject").text == "이벤트") or (i.find("td", class_="gall_subject").text == "공지") :
+            if (rawpost.find("td", class_="gall_subject").text == "이벤트") or (rawpost.find("td", class_="gall_subject").text == "공지") :
                 continue
 
-            # newpost = [4.9 , 6809, 74, 냠냠, ㅇㅇ, 링크]
-            newpost = []
+            # 해당한 키워드가 있는 경우에만
+            if self.has_keyword(rawpost) :
 
-            newpost.append(i.find("td", class_="gall_date").text) # 날짜
-            newpost.append(i.find("td", class_="gall_count").text) # 조회수
-            newpost.append(i.find("td", class_="gall_recommend").text) # 추천수
-            newpost.append(i.find("td", class_="gall_tit ub-word").text[:-6][1:]) # 제목
-            newpost.append(self.urlbase_view + self.code + "/" + i.find("td", class_="gall_num").text) # 링크 
+                # newpost = [4.9 , 6809, 74, 냠냠, ㅇㅇ, 링크]
+                newpost = []
 
-            # 글 모음에 집어넣음.
-            newposts.append(newpost)
+                newpost.append(rawpost.find("td", class_="gall_date").text) # 날짜
+                newpost.append(rawpost.find("td", class_="gall_count").text) # 조회수
+                newpost.append(rawpost.find("td", class_="gall_recommend").text) # 추천수
+                newpost.append(rawpost.find("td", class_="gall_tit ub-word").text[:-6][1:]) # 제목
+                newpost.append(self.urlbase_view + self.gcode + "/" + rawpost.find("td", class_="gall_num").text) # 링크 
+
+                # 글 모음에 집어넣음.
+                newposts.append(newpost)
+
+            # 키워드가 없는 경우는 넘김
+            else :
+                continue
 
             # 만일 최대 개수까지 채웠으면 함수 종료
             if self.is_full(newposts) :
                 return
 
-    ### 파싱한 정보가 최대 개수를 넘었는지 판정.
+    ### 글의 제목에 지정된 키워드가 있는지를 판정한다.
+    def has_keyword(self, title) :
+        for word in self.list_keywords :
+            if word in title.find("td", class_="gall_tit ub-word").text[:-6][1:] :
+                return True
+        return False
+
+    ### 파싱한 정보가 최대 개수를 넘었는지 판정한다.
     def is_full(self, newposts) :
         return (len(newposts) >= int(self.maxpost))
 
@@ -147,16 +178,47 @@ class KgallAlimi() :
 
         write_wb = Workbook()
         write_ws = write_wb.create_sheet('시트1')
-
         write_ws = write_wb.active
 
+        # 첫줄은 스키마
+        write_ws.cell(row=1, column=1).value = '날짜'
+        write_ws.cell(row=1, column=2).value = '조회수'
+        write_ws.cell(row=1, column=3).value = '추천수'
+        write_ws.cell(row=1, column=4).value = '제목'
+        write_ws.cell(row=1, column=5).value = '링크'
+
+
+        # 내용 입력    
         for i in range(len(newposts)) :
             for j in range(len(newposts[i])) :
-                write_ws.cell(row=i+1, column=j+1).value = newposts[i][j]
+                write_ws.cell(row=i+2, column=j+1).value = newposts[i][j]
                 if j==4 :
-                    write_ws.cell(row=i+1, column=j+1).style = "Hyperlink"
+                    write_ws.cell(row=i+2, column=j+1).style = "Hyperlink"
 
+        # 너비조정
+        # write_ws.column_dimensions['제목'].width = 55
+        # write_ws.column_dimensions['링크'].width = 55
+
+        # 저장
         write_wb.save(self.get_filepath(".xlsx"))
+
+    # 파싱한 내용을 mail로 export.
+    def export_mail(self, newposts) :
+        
+        # pw를 받는다.
+        self.mail_info['password'] = input('PW : ')
+
+        # 이멜을 보낸다~
+
+        pass
+
+    # 파싱한 내용을 html로 변환한다.
+    def export_html(self) :
+
+        self.mail_info['text'] = ~~~
+
+        return
+
 
     ### 파싱한 리스트를 콘솔창에 프린트(확인용)
     def print_list(self, newposts) :
@@ -167,11 +229,16 @@ class KgallAlimi() :
             print(post[4])
             print()
 
+    ### 작업 처리시간을 반환한다.
+    def get_perf_time(self) :
+        return time.time() - self.time_start
+
     # 메인 함수.
-    def main(self) :       
+    def start(self) :       
 
         # 0) 초기화
         newposts = []
+        self.time_start = time.time()
 
         # 1) 글을 모으기
         while not self.is_full(newposts) :                      # 정해진 개수만큼 수집하기 전까지는
@@ -179,8 +246,17 @@ class KgallAlimi() :
             self.parse_data(self.get_html(newurl), newposts)    # 받아온 정보를 newposts에 파싱
         
         # 2) 파일로 내보내기
-        self.export_xlsx(newposts)
-        # self.print_list(newposts)
+        if self.export_type == 'xlsx' :     # 엑셀로
+            self.export_xlsx(newposts)
+        elif self.export_type == 'print' :  # 콘솔창으로
+            self.print_list(newposts)
+        elif self.export_type == 'mail' :   # 메일로
+            self.export_mail(newposts)
+        else :
+            print('알 수 없는 타입입니다.')
+
+        # 3) 퍼포먼스 측정
+        print("소요 시간 : {} sec".format(round(self.get_perf_time(), 3)))
 
 
 if __name__ == "__main__" :
@@ -188,50 +264,60 @@ if __name__ == "__main__" :
 
     # ========================================================== config
     # 갤 코드를 입력하세요.
-    code = 'kizunaai'    
+    gcode = 'kizunaai'    
     
     # 파일을 내보낼 경로를 입력하세요.
     path = ""      
     
     # 검색할 키워드를 입력하세요.
     list_keywords = [
-        'EN', '2기생',                              # EN
-        '모리', '칼리', '데몬다이스', '사신',        # 칼리
-        '키아라', '치킨', '불닭', '타카나시',        # 키아라
-        '아메', '왓슨', '슨상', '스몰', 'ame',      # 아메
-        '타코', '이나', '희주', '무너',             # 이나
-        '상어', '구라',                            # 구라
-        '아이리스', 'Rys',                         # 아이리스
-        '시계','크로니','도토부',                   # 크로니
-        '땃쥐', '베이', '벨즈',                     # 베이
-        '나나시', '무메이', '우흥', '토리',          # 무메이
-        '파우나', '자연', '마망', '비건',            # 파우나
-        '사나', '흑인',                             # 사나
-    ]          
+        # EN
+        'EN', '2기','카운슬', 'myth',
+
+        # 칼리
+        '모리', '칼리', '데몬다이스', '사신',
+
+        # 키아라                
+        '키아라', '치킨', '불닭', '타카나시', '점장', 'KFP', '케키',
+
+        # 아메                
+        '아메', '왓슨', '슨상', '스몰', 'smol', 'ame',
+
+        # 이나
+        '타코', '이나', '희주', '무너', '문어',
+
+        # 구라
+        '상어', '구라',
+
+        # 아이리스
+        '아이리스', 'Rys', 'rys', '나미린', '희망',
+
+        # 크로니
+        '시계', '크로', '도토부',
+
+        # 베이
+        '땃쥐', '베이', '벨즈', '햄스터',
+
+        # 무메이
+        '나나시', '무메이', '우흥', '토리', '자폐',
+
+        # 파우나
+        '파우나', '자연', '리프', '마망', '비건', '릴리', '에디', '새플링',
+
+        # 사나
+        '사나', '흑인',
+    ]
+    
+
+
+    # 수신자 정보
+    sender = "joonery79@gmail.com"
+    password = input("PW : ")
+    rcver = "joonery79@gmail.com"
+
     
 
     # ========================================================== 실행
-    alimi = KgallAlimi(code, path, 100, list_keywords, "냠냠")
-    alimi.main()
-
-
-
-##### 조합식 ====================================
-# https://gall.dcinside.com/m/kizunaai/5181831
-# https://gall.dcinside.com/mgallery/board/lists/?id=kizunaai&page=1&exception_mode=recommend
-# https://gall.dcinside.com/mgallery/board/lists/?id=kizunaai&page=3&exception_mode=recommend
-
-# 조합 방식 : https://gall.dcinside.com/mgallery/board/lists/?id= + kizunaai + &page= + 1 + &exception_mode=recommend
-
-
-
-##### 결과물 ====================================
-# 시간 
-# 조회수 / 추천수
-# 제목
-# 링크
-
-# 17:00
-# 조회수 : 12500 / 추천수 : 120
-# 무메이 너무 귀여워
-# https://ㄴㅇㄹㄴㅇㄹㄴㅇㄹㄴ
+    # gcode, list_keywords, maxpost=100, export_type ="xlsx" , path="", filename="rec_list") :
+    alimi = KgallAlimi(gcode, list_keywords, 100, "mail", filename="Today's Scrap", mail_info="joonery79@gmail.com")
+    alimi.start()

@@ -86,10 +86,10 @@ def ex2(html):
 # print(ex2(get_html(url)))
 
 
-# from datetime import datetime, timedelta
+# from datetime import datetime
 
 # # 오늘을 string으로 변환.
-# print(str(datetime.today().strftime('%m.%d')))
+# print(str(datetime.today().strftime('%m_%d_%H:%M')))
 
 # # 어제를 구하는 방법. days= n으로 하면 n일 전이 나온다. 이걸 str로 바꿔주면 돼지~
 # print( (datetime.today() - timedelta(days=1)).strftime('%m.%d') )
@@ -102,14 +102,14 @@ def ex2(html):
 # maxpost = 100
 # print(is_full(a,maxpost))
 
-import os
-from openpyxl import Workbook
+# import os
+# from openpyxl import Workbook
 
-name = '냠'
-filename = "\\" + name +  ".xlsx"      # 캬루야사랑해.txt란 이름으로
-filepath = os.path.join(os.path.expanduser('~'),'Desktop') + filename 
+# name = '냠'
+# filename = "\\" + name +  ".xlsx"      # 캬루야사랑해.txt란 이름으로
+# filepath = os.path.join(os.path.expanduser('~'),'Desktop') + filename 
 
-listing = [[1,2,3],[1,2,3],[1,2,3]]
+# listing = [[1,2,3],[1,2,3],[1,2,3]]
 
 # with open(filepath, "w") as f:
 #     for i in listing :
@@ -117,16 +117,16 @@ listing = [[1,2,3],[1,2,3],[1,2,3]]
 #         f.write('')
 #     f.close()
 
-write_wb = Workbook()
-write_ws = write_wb.create_sheet('시트1')
+# write_wb = Workbook()
+# write_ws = write_wb.create_sheet('시트1')
 
-write_ws = write_wb.active
+# write_ws = write_wb.active
 
-for i in range(len(listing)) :
-    for j in range(len(listing[i])) :
-        write_ws.cell(row=i+1, column=j+1).value = listing[i][j]
+# for i in range(len(listing)) :
+#     for j in range(len(listing[i])) :
+#         write_ws.cell(row=i+1, column=j+1).value = listing[i][j]
 
-write_wb.save(filepath)
+# write_wb.save(filepath)
 
 # 이름이 있는 시트를 생성
 
@@ -145,6 +145,14 @@ write_wb.save(filepath)
 # f1()
 
 
+# a = int(input('입력해주세요 : '))
+# try :
+#     print(a+1)
+
+# except :
+#     print('오류발생.')
+
+# print('오류안발생')
 
 
 

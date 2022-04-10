@@ -14,9 +14,6 @@
  디시알리미
  https://github.com/aldlfkahs/DCinsideAlarm
 
- 뉴스레터 알리미
- https://wooiljeong.github.io/python/newsletter/
-
  html.parser 구문 분석기
  https://docs.python.org/ko/3/library/html.parser.html
 
@@ -24,3 +21,24 @@
  https://library.gabia.com/contents/9239/
 
 
+
+
+
+##### 조합식 ====================================
+# https://gall.dcinside.com/m/kizunaai/5181831
+# https://gall.dcinside.com/mgallery/board/lists/?id=kizunaai&page=1&exception_mode=recommend
+# https://gall.dcinside.com/mgallery/board/lists/?id=kizunaai&page=3&exception_mode=recommend
+# 조합 방식 : https://gall.dcinside.com/mgallery/board/lists/?id= + kizunaai + &page= + 1 + &exception_mode=recommend
+
+
+
+##### 결과물 ====================================
+# 시간 
+# 조회수 / 추천수
+# 제목
+# 링크
+
+# 17:00
+# 조회수 : 12500 / 추천수 : 120
+# 무메이 너무 귀여워
+# https://ㄴㅇㄹㄴㅇㄹㄴㅇㄹㄴ
